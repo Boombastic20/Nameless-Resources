@@ -1,4 +1,4 @@
-<?php 
+<?php
 /*
  *	Made by Samerton
  *  https://github.com/NamelessMC/Nameless/
@@ -23,24 +23,24 @@ $sort_types['updated'] = array('type' => 'updated', 'sort' => $resource_language
 $sort_types['newest'] = array('type' => 'created', 'sort' => $resource_language->get('resources', 'newest'), 'link' => URL::build('/resources', 'sort=newest&', true));
 $sort_types['downloads'] = array('type' => 'downloads', 'sort' => $resource_language->get('resources', 'downloads'), 'link' => URL::build('/resources', 'sort=downloads&', true));
 
-if(isset($_GET['sort']) && array_key_exists($_GET['sort'], $sort_types)){
-    $sort_type = $_GET['sort'];
-    $sort_by = $sort_types[$sort_type]['type'];
-    $sort_by_text = $sort_types[$sort_type]['sort'];
-    $url = $sort_types[$sort_type]['link'];
+if (isset($_GET['sort']) && array_key_exists($_GET['sort'], $sort_types)) {
+	$sort_type = $_GET['sort'];
+	$sort_by = $sort_types[$sort_type]['type'];
+	$sort_by_text = $sort_types[$sort_type]['sort'];
+	$url = $sort_types[$sort_type]['link'];
 } else {
-    $sort_by = 'updated';
-    $sort_by_text = $resource_language->get('resources', 'last_updated');
-    $url = URL::build('/resources', true);
+	$sort_by = 'updated';
+	$sort_by_text = $resource_language->get('resources', 'last_updated');
+	$url = URL::build('/resources', true);
 }
 
 // Get page
-if(isset($_GET['p'])){
-	if(!is_numeric($_GET['p'])){
+if (isset($_GET['p'])) {
+	if (!is_numeric($_GET['p'])) {
 		Redirect::to($url);
 		die();
 	} else {
-		if($_GET['p'] == 1){ 
+		if ($_GET['p'] == 1) {
 			// Avoid bug in pagination class
 			Redirect::to($url);
 			die();
@@ -52,12 +52,12 @@ if(isset($_GET['p'])){
 }
 
 if ($user->isLoggedIn()) {
-    $groups = array();
-    foreach ($user->getGroups() as $group) {
-        $groups[] = $group->id;
-    }
+	$groups = array();
+	foreach ($user->getGroups() as $group) {
+		$groups[] = $group->id;
+	}
 } else {
-    $groups = array(0);
+	$groups = array(0);
 }
 
 $page_title = $resource_language->get('resources', 'resources') . ' - ' . str_replace('{x}', $p, $language->get('general', 'page_x'));
@@ -66,15 +66,15 @@ require_once(ROOT_PATH . '/core/templates/frontend_init.php');
 $categories = $resources->getCategories($groups);
 // Assign to Smarty array
 $category_array = array();
-foreach($categories as $category){
-    // Get category count
-    $category_count = $queries->getWhere('resources', array('category_id', '=', $category->id));
-    $category_count = count($category_count);
-    $category_array[] = array(
-        'name' => Output::getClean($category->name),
-        'link' => URL::build('/resources/category/' . $category->id . '-' . Util::stringToURL($category->name)),
-	'count' => Output::getClean($category_count)
-    );
+foreach ($categories as $category) {
+	// Get category count
+	$category_count = $queries->getWhere('resources', array('category_id', '=', $category->id));
+	$category_count = count($category_count);
+	$category_array[] = array(
+		'name' => Output::getClean($category->name),
+		'link' => URL::build('/resources/category/' . $category->id . '-' . Util::stringToURL($category->name)),
+		'count' => Output::getClean($category_count)
+	);
 }
 $categories = null;
 
@@ -91,7 +91,7 @@ $smarty->assign('PAGINATION', $pagination);
 // Array to pass to template
 $releases_array = array();
 
-if(count($latest_releases)){
+if (count($latest_releases)) {
 	// Display the correct number of resources
 	$n = 0;
 
@@ -101,13 +101,13 @@ if(count($latest_releases)){
 
 		// Get category
 		$category = $queries->getWhere('resources_categories', array('id', '=', $resource->category_id));
-		if(count($category)){
-			  $category = Output::getClean($category[0]->name);
+		if (count($category)) {
+			$category = Output::getClean($category[0]->name);
 		} else {
-			  $category = 'n/a';
+			$category = 'n/a';
 		}
 
-		if(!isset($releases_array[$resource->id])){
+		if (!isset($releases_array[$resource->id])) {
 			$resource_author = new User($resource->creator_id);
 			$releases_array[$resource->id] = array(
 				'link' => URL::build('/resources/resource/' . $resource->id . '-' . Util::stringToURL($resource->name)),
@@ -126,12 +126,16 @@ if(count($latest_releases)){
 				'updated' => str_replace('{x}', $timeago->inWords(date('d M Y, H:i', $resource->updated), $language->getTimeLanguage()), $resource_language->get('resources', 'updated_x')),
 				'updated_full' => date('d M Y, H:i', $resource->updated)
 			);
-            
-            if($resource->type == 1 ) {
-                $releases_array[$resource->id]['price'] = Output::getClean($resource->price);
-            }
-	  		// Check if resource icon uploaded
-			if($resource->has_icon == 1 ) {
+
+			if ($resource->type == 1) {
+
+				if ($resource->discount > 0) {
+					$releases_array[$resource->id]['discount'] = Output::getClean($resource->discount);
+				}
+				$releases_array[$resource->id]['price'] = Output::getClean(Resources::getPricePercent($resource->price, $resource->discount));
+			}
+			// Check if resource icon uploaded
+			if ($resource->has_icon == 1) {
 				$releases_array[$resource->id]['icon'] = $resource->icon;
 			} else {
 				$releases_array[$resource->id]['icon'] = rtrim(Util::getSelfURL(), '/') . (defined('CONFIG_PATH') ? CONFIG_PATH . '/' : '/') . 'uploads/resources_icons/default.png';
@@ -144,13 +148,12 @@ if(count($latest_releases)){
 
 // Get currency
 $currency = $queries->getWhere('settings', array('name', '=', 'resources_currency'));
-if(!count($currency)){
+if (!count($currency)) {
 	$queries->create('settings', array(
 		'name' => 'resources_currency',
 		'value' => 'GBP'
 	));
 	$currency = 'GBP';
-
 } else
 	$currency = $currency[0]->value;
 
@@ -165,17 +168,17 @@ $smarty->assign(array(
 	'RESOURCE' => $resource_language->get('resources', 'resource'),
 	'STATS' => $resource_language->get('resources', 'stats'),
 	'AUTHOR' => $resource_language->get('resources', 'author'),
-    'SORT_BY' => $resource_language->get('resources', 'sort_by'),
-    'SORT_BY_VALUE' => $sort_by_text,
-    'SORT_TYPES' => $sort_types,
-    'NEWEST' => $resource_language->get('resources', 'newest'),
-    'LAST_UPDATED' => $resource_language->get('resources', 'last_updated'),
-    'DOWNLOADS' => $resource_language->get('resources', 'downloads'),
-    'RESOURCES_LINK' => URL::build('/resources'),
-    'CURRENCY' => Output::getClean($currency)
+	'SORT_BY' => $resource_language->get('resources', 'sort_by'),
+	'SORT_BY_VALUE' => $sort_by_text,
+	'SORT_TYPES' => $sort_types,
+	'NEWEST' => $resource_language->get('resources', 'newest'),
+	'LAST_UPDATED' => $resource_language->get('resources', 'last_updated'),
+	'DOWNLOADS' => $resource_language->get('resources', 'downloads'),
+	'RESOURCES_LINK' => URL::build('/resources'),
+	'CURRENCY' => Output::getClean($currency)
 ));
 
-if($user->isLoggedIn() && $resources->canPostResourceInAnyCategory($groups)){
+if ($user->isLoggedIn() && $resources->canPostResourceInAnyCategory($groups)) {
 	$smarty->assign(array(
 		'NEW_RESOURCE_LINK' => URL::build('/resources/new'),
 		'NEW_RESOURCE' => $resource_language->get('resources', 'new_resource')

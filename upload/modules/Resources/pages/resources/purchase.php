@@ -12,14 +12,14 @@
 define('PAGE', 'resources');
 define('RESOURCE_PAGE', 'purchase');
 
-if(!$user->isLoggedIn()){
+if (!$user->isLoggedIn()) {
 	Redirect::to(URL::build('/resources'));
 	die();
 }
 
 $groups = array();
 foreach ($user->getGroups() as $group) {
-    $groups[] = $group->id;
+	$groups[] = $group->id;
 }
 
 // Get resource
@@ -32,20 +32,20 @@ if (!strlen($rid)) {
 }
 
 $rid = explode('-', $rid);
-if(!is_numeric($rid[0])){
+if (!is_numeric($rid[0])) {
 	Redirect::to(URL::build('/resources'));
 	die();
 }
 $rid = $rid[0];
 
 $resource = $queries->getWhere('resources', array('id', '=', $rid));
-if(!count($resource)){
+if (!count($resource)) {
 	Redirect::to(URL::build('/resources'));
 	die();
 }
 $resource = $resource[0];
 
-if($user->data()->id == $resource->creator_id || $resource->type == 0){
+if ($user->data()->id == $resource->creator_id || $resource->type == 0) {
 	// Can't purchase own resource
 	Redirect::to(URL::build('/resources'));
 	die();
@@ -63,28 +63,27 @@ if (!$resources->canDownloadResourceFromCategory($groups, $resource->category_id
 
 // Already purchased?
 $already_purchased = DB::getInstance()->query('SELECT id, status FROM nl2_resources_payments WHERE resource_id = ? AND user_id = ?', array($resource->id, $user->data()->id))->results();
-if(count($already_purchased)){
+if (count($already_purchased)) {
 	$already_purchased_id = $already_purchased[0]->id;
 	$already_purchased = $already_purchased[0]->status;
 
-	if($already_purchased == 0 || $already_purchased == 1){
+	if ($already_purchased == 0 || $already_purchased == 1) {
 		// Already purchased
 		Redirect::to(URL::build('/resources/resource/' . Output::getClean($resource->id . '-' . Util::stringToURL($resource->name))));
 		die();
 	}
 }
 
-if(isset($_GET['do'])){
+if (isset($_GET['do'])) {
 	require_once(ROOT_PATH . '/modules/Resources/paypal.php');
 
-	if($_GET['do'] == 'complete'){
+	if ($_GET['do'] == 'complete') {
 		// Insert into database
-		if(!isset($_SESSION['resource_purchasing'])){
+		if (!isset($_SESSION['resource_purchasing'])) {
 			// Error, resource ID has been lost
 			Session::flash('purchase_resource_error', $resource_language->get('resources', 'sorry_please_try_again'));
 			Redirect::to(URL::build('/resources/purchase/' . Output::getClean($resource->id . '-' . Util::stringToURL($resource->name))));
 			die();
-
 		} else {
 			$paymentId = $_GET['paymentId'];
 			$payment = \PayPal\Api\Payment::get($paymentId, $apiContext);
@@ -96,8 +95,7 @@ if(isset($_GET['do'])){
 				$result = $payment->execute($execution, $apiContext);
 
 				$payment = \PayPal\Api\Payment::get($paymentId, $apiContext);
-
-			} catch(Exception $e){
+			} catch (Exception $e) {
 				Session::flash('purchase_resource_error', $resource_language->get('resources', 'error_while_purchasing'));
 				Redirect::to(URL::build('/resources/purchase/' . Output::getClean($resource->id . '-' . Util::stringToURL($resource->name))));
 
@@ -105,14 +103,13 @@ if(isset($_GET['do'])){
 				die();
 			}
 
-			if(isset($already_purchased_id) && $already_purchased == 2){
+			if (isset($already_purchased_id) && $already_purchased == 2) {
 				// Update a cancelled purchase
 				$queries->update('resources_payments', $already_purchased_id, array(
 					'status' => 0,
 					'created' => date('U'),
 					'transaction_id' => $payment->getId()
 				));
-
 			} else {
 				// Create a new purchase
 				$queries->create('resources_payments', array(
@@ -127,36 +124,32 @@ if(isset($_GET['do'])){
 			// TODO: alerts
 			//Alert::create('');
 		}
-
 	}
-
 } else {
-	if(Input::exists()){
-		if(Token::check(Input::get('token'))){
-			if($_POST['action'] == 'agree'){
+	if (Input::exists()) {
+		if (Token::check(Input::get('token'))) {
+			if ($_POST['action'] == 'agree') {
 				// Create PayPal request
-				if(!file_exists(ROOT_PATH . '/modules/Resources/paypal.php')){
+				if (!file_exists(ROOT_PATH . '/modules/Resources/paypal.php')) {
 					$error = $resource_language->get('resources', 'paypal_not_configured');
 				} else {
 					$_SESSION['resource_purchasing'] = $resource->id;
 
 					$currency = $queries->getWhere('settings', array('name', '=', 'resources_currency'));
-					if(!count($currency)){
+					if (!count($currency)) {
 						$queries->create('settings', array(
 							'name' => 'resources_currency',
 							'value' => 'GBP'
 						));
 						$currency = 'GBP';
-
 					} else {
 						$currency = Output::getClean($currency[0]->value);
 					}
 
 					// Get author's PayPal
 					$author_paypal = $queries->getWhere('resources_users_premium_details', array('user_id', '=', $resource->creator_id));
-					if(!count($author_paypal) || !strlen($author_paypal[0]->paypal_email)){
+					if (!count($author_paypal) || !strlen($author_paypal[0]->paypal_email)) {
 						$error = $resource_language->get('resources', 'author_doesnt_have_paypal');
-
 					} else {
 						$author_paypal = Output::getClean($author_paypal[0]->paypal_email);
 
@@ -169,7 +162,7 @@ if(isset($_GET['do'])){
 						$payee->setEmail($author_paypal);
 
 						$amount = new \PayPal\Api\Amount();
-						$amount->setTotal($resource->price);
+						$amount->setTotal(Resources::getPricePercent($resource->price, $resource->discount));
 						$amount->setCurrency($currency);
 
 						$transaction = new \PayPal\Api\Transaction();
@@ -192,16 +185,13 @@ if(isset($_GET['do'])){
 
 							Redirect::to($payment->getApprovalLink());
 							die();
-
 						} catch (\PayPal\Exception\PayPalConnectionException $ex) {
 							ErrorHandler::logCustomError($ex->getData());
 							$error = $resource_language->get('resources', 'error_while_purchasing');
-
 						}
 					}
 				}
 			}
-
 		} else
 			$error = $language->get('general', 'invalid_token');
 	}
@@ -210,8 +200,8 @@ if(isset($_GET['do'])){
 $page_title = str_replace('{x}', Output::getClean($resource->name), $resource_language->get('resources', 'purchasing_resource_x'));
 require_once(ROOT_PATH . '/core/templates/frontend_init.php');
 
-if(isset($_GET['do'])){
-	if($_GET['do'] == 'complete'){
+if (isset($_GET['do'])) {
+	if ($_GET['do'] == 'complete') {
 		$smarty->assign(array(
 			'PURCHASING_RESOURCE' => str_replace('{x}', Output::getClean($resource->name), $resource_language->get('resources', 'purchasing_resource_x')),
 			'PURCHASE_COMPLETE' => $resource_language->get('resources', 'purchase_complete'),
@@ -230,10 +220,9 @@ if(isset($_GET['do'])){
 
 		$template_file = 'resources/purchase_cancelled.tpl';
 	}
-
 } else {
 	$pre_purchase_info = $queries->getWhere('privacy_terms', array('name', '=', 'resource'));
-	if(!count($pre_purchase_info)){
+	if (!count($pre_purchase_info)) {
 		$pre_purchase_info = '<p>You will be redirected to PayPal to complete your purchase.</p><p>Access to the download will only be granted once the payment has been completed, this may take a while.</p><p>Please note, ' . SITE_NAME . ' can\'t take any responsibility for purchases that occur through our resources section. If you experience any issues with the resource, please contact the resource author directly.</p><p>If your access to ' . SITE_NAME . ' is revoked (for example, your account is banned), you will lose access to any purchased resources.</p>';
 
 		$queries->create('privacy_terms', array(
@@ -257,10 +246,10 @@ if(isset($_GET['do'])){
 	$template_file = 'resources/purchase.tpl';
 }
 
-if(Session::exists('purchase_resource_error'))
+if (Session::exists('purchase_resource_error'))
 	$error = Session::flash('purchase_resource_error');
 
-if(isset($error))
+if (isset($error))
 	$smarty->assign('ERROR', $error);
 
 // Load modules + template

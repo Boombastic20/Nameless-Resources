@@ -1,4 +1,4 @@
-<?php 
+<?php
 /*
  *	Made by Samerton
  *  https://github.com/NamelessMC/Nameless/
@@ -9,10 +9,12 @@
  *  Resource module class
  */
 
-class Resources_Module extends Module {
+class Resources_Module extends Module
+{
 	private $_resource_language, $_language;
 
-	public function __construct($pages, $language, $resource_language){
+	public function __construct($pages, $language, $resource_language)
+	{
 		$this->_resource_language = $resource_language;
 		$this->_language = $language;
 
@@ -41,34 +43,34 @@ class Resources_Module extends Module {
 		$pages->add('Resources', '/user/resources', 'pages/user/resources.php');
 		$pages->add('Resources', '/resources/icon_upload', 'pages/resources/icon_upload.php');
 		$pages->add('Resources', '/user/resources/licenses', 'pages/user/licenses.php');
-
 	}
 
-	public function onInstall(){
+	public function onInstall()
+	{
 		try {
 			$engine = Config::get('mysql/engine');
 			$charset = Config::get('mysql/charset');
-		} catch(Exception $e){
+		} catch (Exception $e) {
 			$engine = 'InnoDB';
 			$charset = 'utf8mb4';
 		}
 
-		if(!$engine || is_array($engine))
+		if (!$engine || is_array($engine))
 			$engine = 'InnoDB';
 
-		if(!$charset || is_array($charset))
+		if (!$charset || is_array($charset))
 			$charset = 'latin1';
 
 		$queries = new Queries();
 		try {
 			$data = $queries->createTable("resources_categories", " `id` int(11) NOT NULL AUTO_INCREMENT, `name` varchar(32) NOT NULL, `description` text, `display_order` int(11) NOT NULL DEFAULT '0', PRIMARY KEY (`id`)", "ENGINE=$engine DEFAULT CHARSET=$charset");
-			$data = $queries->createTable("resources", " `id` int(11) NOT NULL AUTO_INCREMENT, `category_id` int(11) NOT NULL, `creator_id` int(11) NOT NULL, `name` varchar(64) NOT NULL, `short_description` varchar(64) NOT NULL, `has_icon` tinyint(1) NOT NULL DEFAULT '0', `icon` mediumtext NOT NULL, `icon_updated` int(11) NOT NULL, `description` mediumtext NOT NULL, `contributors` text, `views` int(11) NOT NULL DEFAULT '0', `downloads` int(11) NOT NULL DEFAULT '0', `created` int(11) NOT NULL, `updated` int(11) NOT NULL, `github_url` varchar(128) DEFAULT NULL, `github_username` varchar(64) DEFAULT NULL, `github_repo_name` varchar(64) DEFAULT NULL, `rating` int(11) NOT NULL DEFAULT '0', `latest_version` varchar(32) DEFAULT NULL, `type` tinyint(1) NOT NULL DEFAULT '0', `price` varchar(16) DEFAULT NULL, `payment_email` varchar(256) DEFAULT NULL, PRIMARY KEY (`id`)", "ENGINE=$engine DEFAULT CHARSET=$charset");
+			$data = $queries->createTable("resources", " `id` int(11) NOT NULL AUTO_INCREMENT, `category_id` int(11) NOT NULL, `creator_id` int(11) NOT NULL, `name` varchar(64) NOT NULL, `short_description` varchar(64) NOT NULL, `has_icon` tinyint(1) NOT NULL DEFAULT '0', `icon` mediumtext NOT NULL, `icon_updated` int(11) NOT NULL, `description` mediumtext NOT NULL, `contributors` text, `views` int(11) NOT NULL DEFAULT '0', `downloads` int(11) NOT NULL DEFAULT '0', `created` int(11) NOT NULL, `updated` int(11) NOT NULL, `github_url` varchar(128) DEFAULT NULL, `github_username` varchar(64) DEFAULT NULL, `github_repo_name` varchar(64) DEFAULT NULL, `rating` int(11) NOT NULL DEFAULT '0', `latest_version` varchar(32) DEFAULT NULL, `type` tinyint(1) NOT NULL DEFAULT '0', `price` varchar(16) DEFAULT NULL, `payment_email` varchar(256) DEFAULT NULL, `discount` int(11) DEFAULT NULL, PRIMARY KEY (`id`)", "ENGINE=$engine DEFAULT CHARSET=$charset");
 			$data = $queries->createTable("resources_releases", " `id` int(11) NOT NULL AUTO_INCREMENT, `resource_id` int(11) NOT NULL, `category_id` int(11) NOT NULL, `release_title` varchar(128) NOT NULL, `release_description` mediumtext NOT NULL, `release_tag` varchar(16) NOT NULL, `created` int(11) NOT NULL, `downloads` int(11) NOT NULL DEFAULT '0', `rating` int(11) NOT NULL DEFAULT '0', `download_link` varchar(255) DEFAULT NULL, PRIMARY KEY (`id`)", "ENGINE=$engine DEFAULT CHARSET=$charset");
 			$data = $queries->createTable("resources_comments", " `id` int(11) NOT NULL AUTO_INCREMENT, `resource_id` int(11) NOT NULL, `author_id` int(11) NOT NULL, `content` mediumtext NOT NULL, `release_tag` varchar(16) NOT NULL, `created` int(11) NOT NULL, `reply_id` int(11) DEFAULT NULL, `rating` int(11) NOT NULL DEFAULT '0', `hidden` tinyint(1) NOT NULL DEFAULT '0', PRIMARY KEY (`id`)", "ENGINE=$engine DEFAULT CHARSET=$charset");
 			$data = $queries->createTable("resources_categories_permissions", " `id` int(11) NOT NULL AUTO_INCREMENT, `category_id` int(11) NOT NULL, `group_id` int(11) NOT NULL, `view` tinyint(1) NOT NULL DEFAULT '1', `post` tinyint(1) NOT NULL DEFAULT '1', `move_resource` tinyint(1) NOT NULL DEFAULT '1', `edit_resource` tinyint(1) NOT NULL DEFAULT '1', `delete_resource` tinyint(1) NOT NULL DEFAULT '1', `edit_review` tinyint(1) NOT NULL DEFAULT '1', `delete_review` tinyint(1) NOT NULL DEFAULT '1', `download` tinyint(1) NOT NULL DEFAULT '0', `premium` tinyint(1) NOT NULL DEFAULT '0', PRIMARY KEY (`id`)", "ENGINE=$engine DEFAULT CHARSET=$charset");
 			$data = $queries->createTable("resources_payments", " `id` int(11) NOT NULL AUTO_INCREMENT, `user_id` int(11) NOT NULL, `resource_id` int(11) NOT NULL, `transaction_id` varchar(32) NOT NULL, `created` int(11) NOT NULL, `status` tinyint(1) NOT NULL DEFAULT '0', PRIMARY KEY (`id`)", "ENGINE=$engine DEFAULT CHARSET=$charset");
 			$data = $queries->createTable("resources_users_premium_details", " `id` int(11) NOT NULL AUTO_INCREMENT, `user_id` int(11) NOT NULL, `paypal_email` varchar(256) DEFAULT NULL, PRIMARY KEY (`id`)", "ENGINE=$engine DEFAULT CHARSET=$charset");
-		} catch(Exception $e){
+		} catch (Exception $e) {
 			// Error
 		}
 
@@ -76,7 +78,8 @@ class Resources_Module extends Module {
 		mkdir(ROOT_PATH . '/uploads/resources_icons');
 	}
 
-	public function onUninstall(){
+	public function onUninstall()
+	{
 		DB::getInstance()->createQuery('DROP TABLE resources_categories');
 		DB::getInstance()->createQuery('DROP TABLE resources');
 		DB::getInstance()->createQuery('DROP TABLE resources_releases');
@@ -86,18 +89,49 @@ class Resources_Module extends Module {
 		DB::getInstance()->createQuery('DROP TABLE resources_users_premium_details');
 	}
 
-	public function onEnable(){
+	public function onEnable()
+	{
+		$queries = new Queries();
+		// Discount
+		try {
+			$queries->alterTable('resources', 'discount', 'int(11) DEFAULT NULL');
+		} catch (Exception $e) {
+		}
 
+		try {
+			$queries->alterTable('resources', 'short_description', 'varchar(64) NOT NULL');
+		} catch (Exception $e) {
+		}
+
+		try {
+			$queries->alterTable('resources', 'has_icon', 'tinyint(1) NOT NULL DEFAULT \'0\'');
+		} catch (Exception $e) {
+		}
+
+		try {
+			$queries->alterTable('resources', 'icon', 'mediumtext NOT NULL');
+		} catch (Exception $e) {
+		}
+
+		try {
+			$queries->alterTable('resources', 'icon_updated', 'int(11) NOT NULL');
+		} catch (Exception $e) {
+		}
+		try {
+			$queries->alterTable('resources', 'rating', 'int(11) NOT NULL DEFAULT \'0\'');
+		} catch (Exception $e) {
+		}
 	}
 
-	public function onDisable(){
-
+	public function onDisable()
+	{
 	}
 
-	public function onPageLoad($user, $pages, $cache, $smarty, $navs, $widgets, $template){
+	public function onPageLoad($user, $pages, $cache, $smarty, $navs, $widgets, $template)
+	{
 		// Add link to navbar
 		$cache->setCache('navbar_order');
-		if(!$cache->isCached('resources_order')){
+		if (!$cache->isCached('resources_order')) {
 			$resources_order = 2;
 			$cache->store('resources_order', 2);
 		} else {
@@ -105,7 +139,7 @@ class Resources_Module extends Module {
 		}
 
 		$cache->setCache('navbar_icons');
-		if(!$cache->isCached('resources_icon')){
+		if (!$cache->isCached('resources_icon')) {
 			$icon = '';
 		} else {
 			$icon = $cache->retrieve('resources_icon');
@@ -126,16 +160,16 @@ class Resources_Module extends Module {
 		require_once(__DIR__ . '/widgets/TopResources.php');
 		$top_resources_module_pages = $widgets->getPages('Top Resources');
 		$widgets->add(new TopResourcesWidget($top_resources_module_pages, $user, $this->_language, $this->_resource_language, $smarty, $cache));
-		
-		if(defined('BACK_END')){
+
+		if (defined('BACK_END')) {
 			// Check if upload dir is writable
-			if(!is_writable(ROOT_PATH . '/uploads/resources')){
+			if (!is_writable(ROOT_PATH . '/uploads/resources')) {
 				Core_Module::addNotice(URL::build('/panel/resources/settings'), $this->_resource_language->get('resources', 'upload_directory_not_writable'));
 			}
 
-			if($user->getMainGroup()->id == 2 || $user->hasPermission('admincp.resources')){
+			if ($user->getMainGroup()->id == 2 || $user->hasPermission('admincp.resources')) {
 				$cache->setCache('panel_sidebar');
-				if(!$cache->isCached('resources_order')){
+				if (!$cache->isCached('resources_order')) {
 					$order = 20;
 					$cache->store('resources_order', 20);
 				} else {
@@ -144,8 +178,8 @@ class Resources_Module extends Module {
 
 				$navs[2]->add('resources_divider', mb_strtoupper($this->_resource_language->get('resources', 'resources')), 'divider', 'top', null, $order, '');
 
-				if($user->getMainGroup()->id == 2 || $user->hasPermission('admincp.resources.categories')){
-					if(!$cache->isCached('resources_categories_icon')){
+				if ($user->getMainGroup()->id == 2 || $user->hasPermission('admincp.resources.categories')) {
+					if (!$cache->isCached('resources_categories_icon')) {
 						$icon = '<i class="nav-icon fa fa-list" aria-hidden="true"></i>';
 						$cache->store('resources_categories_icon', $icon);
 					} else
@@ -164,8 +198,8 @@ class Resources_Module extends Module {
 					$navs[2]->add('resources_downloads', $this->_resource_language->get('resources', 'downloads'), URL::build('/panel/resources/downloads'), 'top', null, ($order + 0.2), $icon);
 				}*/
 
-				if($user->getMainGroup()->id == 2 || $user->hasPermission('admincp.resources.settings')){
-					if(!$cache->isCached('resources_settings_icon')){
+				if ($user->getMainGroup()->id == 2 || $user->hasPermission('admincp.resources.settings')) {
+					if (!$cache->isCached('resources_settings_icon')) {
 						$icon = '<i class="nav-icon fa fa-cog" aria-hidden="true"></i>';
 						$cache->store('resources_settings_icon', $icon);
 					} else
@@ -173,7 +207,6 @@ class Resources_Module extends Module {
 
 					$navs[2]->add('resources_settings', $this->_resource_language->get('resources', 'settings'), URL::build('/panel/resources/settings'), 'top', null, ($order + 0.3), $icon);
 				}
-
 			}
 		}
 
