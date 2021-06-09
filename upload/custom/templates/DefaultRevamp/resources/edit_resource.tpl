@@ -59,7 +59,7 @@
 				<div class="field" id="discountFormGroup">
 					<label for="inputDiscount">Discount (%)</label>
 					<div class="ui right labeled input">
-						<input type="number" id="inputDiscount" name="discount" value="{$DISCOUNT}">
+						<input type="number" id="inputDiscount" name="discount" value="{if !empty($DISCOUNT)}{$DISCOUNT}{else}0{/if}">
 					</div>
 				</div>
 				{* End Discount *}
